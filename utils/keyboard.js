@@ -83,10 +83,8 @@ module.exports = new class {
             return this.clear()
         }
         if (!this.existRow(1)) {
-            this.buttons[this.id][0].map((val, i) => {
-                return [val]
-            })
-            return Markup.keyboard(this.buttons[this.id][0]).resize().extra()
+            const linearKeyboard = this.buttons[this.id][0].map(val => [val])
+            return Markup.keyboard(linearKeyboard).resize().extra()
         }
         return Markup.keyboard(this.buttons[this.id]).resize().extra()
     }

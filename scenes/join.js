@@ -38,23 +38,27 @@ joinGroup.on('cancel', (ctx) => {
 
 module.exports = new Scene('join')
 .enter(async (ctx) => {
-    const user = ctx.session.user
-    let groups = user.group
-    await ctx.reply('С помощью этой настройки вы можете сделать так, чтобы отображалось рассписание сразу нескольких групп вместо того, чтобы каждый раз отдельно менять группу. Чтобы отключить эту настройку, перевыберите группу нажав на пункт "Сменить группу" в настройках', Keyboard.new().clear())
-    let inlineKeyboard = []
-    for (let i = 0; i < user.last_group.length; i++) {
-        if (!groups.includes(user.last_group[i])) {
-            inlineKeyboard.push(Markup.callbackButton(user.last_group[i], 'set:' + user.last_group[i]))
+    try {
+        const user = ctx.session.user
+        let groups = user.group
+        await ctx.reply('С помощью этой настройки вы можете сделать так, чтобы отображалось рассписание сразу нескольких групп вместо того, чтобы каждый раз отдельно менять группу. Чтобы отключить эту настройку, перевыберите группу нажав на пункт "Сменить группу" в настройках', Keyboard.new().clear())
+        let inlineKeyboard = []
+        for (let group of user.last_group) {
+            if (!groups.includes(group)) {
+                inlineKeyboard.push(Markup.callbackButton(group, 'set:' + group))
+            }
         }
-    }
-    if (inlineKeyboard.length > 0) {
-        inlineKeyboard.push(Markup.callbackButton('Отмена', 'cancel'))
-        ctx.reply('Выберите группу, которую вы хотите добавить к текущей', Markup.inlineKeyboard(inlineKeyboard, {
-            columns: 2
-        }).extra())
-    } else {
-        ctx.replyWithHTML('У вас нету сохраненных групп или только одна, для начала добавьте их через меню <b>"Сменить группу"</b> в настройках')
-        return ctx.scene.enter('settings')
+        if (inlineKeyboard.length > 0) {
+            inlineKeyboard.push(Markup.callbackButton('Отмена', 'cancel'))
+            ctx.reply('Выберите группу, которую вы хотите добавить к текущей', Markup.inlineKeyboard(inlineKeyboard, {
+                columns: 2
+            }).extra())
+        } else {
+            await ctx.replyWithHTML('У вас нету сохраненных групп или только одна, для начала добавьте их через меню <b>"Сменить группу"</b> в настройках')
+            return ctx.scene.enter('settings')
+        }
+    } catch(err) {
+        console.log(`(join) User ${ctx.from.id} blocked`)
     }
 })
 .on('callback_query', joinGroup)

@@ -1,14 +1,29 @@
-const User = require('../mongo').User//mongoose.model("User", userScheme, 'users')
+const User = require('../mongo').User
 const moment = require('moment')
 
 module.exports = new class {
     //Проверка на существование юзера по id
     async exist(id) {
-        return await this.get(id) ? true : false
+        return (await this.get(id)) ? true : false
     }
     //Регистрация нового юзера
-    async register(user) {
-        const users = new User({id: user.id, nick: user.username, group: [], group_id: [], notify: false, time: 0, first_name: user.first_name || '', last_name: user.last_name || '', last_group: [], current_week: {start: moment().startOf('isoWeek').format('DD.MM.YYYY'), end  : moment().endOf('isoWeek').add(-2, 'days').format('DD.MM.YYYY')}, current_day: moment().format('DD.MM.YYYY')})
+    async reg(user) {
+        const users = new User({
+            id: user.id,
+            nick: user.username,
+            group: [],
+            group_id: [],
+            notify: false,
+            time: 0,
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            last_group: [],
+            current_week: {
+                start: moment().startOf('isoWeek').format('DD.MM.YYYY'),
+                end  : moment().endOf('isoWeek').add(-2, 'days').format('DD.MM.YYYY')
+            },
+            current_day: moment().format('DD.MM.YYYY')
+        })
         return await users.save()
     }
     //Обновление данных о пользователе
@@ -19,6 +34,7 @@ module.exports = new class {
     async get(id) {
         return await User.findOne({id: id})
     }
+    //Получение всех пользователей
     async all() {
         return await User.find()
     }

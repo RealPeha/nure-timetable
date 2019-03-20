@@ -1,22 +1,18 @@
-const Telegraf = require('telegraf'),
-      session = require('telegraf/session'),
-      Stage = require('telegraf/stage')
+const Telegraf  = require('telegraf'),
+      rateLimit = require('telegraf-ratelimit'),
+      Stage     = require('telegraf/stage')
 
 const config = require('./config.json')
 
-const User  = require('./utils/user'),
-      Mongo = require('./mongo'),
-      Schedule  = require('./utils/schedule')
+const { stat, session } = require('./middlewares')
+const User  = require('./utils/user')
 
 const menu = require('./scenes/menu'),
       select = require('./scenes/select'),
       settings = require('./scenes/settings'),
-      settingsTime = require('./scenes/settings-time'),
       join = require('./scenes/join')
-      //notify = require('./scenes/notify')
 
-const stage = new Stage([menu, settings, select, settingsTime, join]/*.concat(notify)*/)
-
+const stage = new Stage([menu, settings, select, join])
 //Для уведомлений
 /*const cron = require('cron')
 
@@ -24,24 +20,32 @@ const cronJob = cron.job('* 5 * * * *', () => {
     Notify.start()
 })
 cronJob.start()*/
-//
 
 const bot = new Telegraf(config.token)
 
 bot.use(session())
+bot.use(stat())
 bot.use(stage.middleware())
+bot.use(rateLimit())
 
 bot.start(async (ctx) => {
-    const id = ctx.message.from.id
-    ctx.session.groups = await Schedule.allGroups() //Сразу же создаем массив из всех групп и их id
+    console.log('start', ctx.session)
+    const id = ctx.from.id
     const user = await User.get(id)
     if (user) {
-        ctx.session.user = user //И запоминаем юзера, чтобы каждый раз не дергать бд
-        ctx.scene.enter('menu')
+        ctx.session.user = user
+        return ctx.scene.enter('menu')
     } else {
-        ctx.session.user = await User.register(ctx.message.from) //Регистрируем и запоминаем юзера, чтобы каждый раз не дергать бд
-        await ctx.reply('Этот бот поможет тебе всегда узнавать актуальное расписание пар для твоей группы. Чтобы узнать расписание просто укажи свою группу')
-        ctx.scene.enter('select')
+        const regUser = await User.reg(ctx.from)
+        ctx.session.user = regUser
+        try {
+            ctx.reply('Этот бот поможет тебе всегда узнавать актуальное расписание пар для твоей группы. Чтобы узнать расписание просто укажи свою группу')
+            return ctx.scene.enter('select')
+        } catch (err) {
+            console.log(`(start) User ${id} blocked`)
+        }
+        //.then(() => ctx.scene.enter('select'))
+        //.catch(err => console.log(`(start) User ${id} blocked`))
     }
 })
 /*bot.launch({
@@ -50,4 +54,5 @@ bot.start(async (ctx) => {
     port: process.env.PORT || 8080
   }
 })*/
+bot.catch(err => console.log(err))
 bot.launch()

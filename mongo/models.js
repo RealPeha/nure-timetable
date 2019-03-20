@@ -26,6 +26,19 @@ const updateScheme = new Schema({
     time: String
 })
 
+//Stats
+const statScheme = new Schema({
+    date: String,
+    callback_query: Number,
+    message: Number
+})
+
+//Sessions
+const sessionScheme = new Schema({
+    key: String,
+    session: Object
+})
+
 //Groups
 const groupScheme = new Schema({
     group_name: String,
@@ -50,6 +63,8 @@ const groupScheme = new Schema({
     }]
 })
 
-module.exports.Group  = mongoose.model("Group", groupScheme, 'groups')
-module.exports.Update = mongoose.model("Update", updateScheme, 'updates')
-module.exports.User   = mongoose.model("User", userScheme, 'users')
+module.exports.Group   = mongoose.model("Group", groupScheme, 'groups')
+module.exports.Update  = mongoose.model("Update", updateScheme, 'updates')
+module.exports.User    = mongoose.model("User", userScheme, 'users')
+module.exports.Stat    = mongoose.model("Stat", statScheme, 'stats')
+module.exports.Session = mongoose.model("Session", sessionScheme, 'sessions')

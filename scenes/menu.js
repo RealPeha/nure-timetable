@@ -7,24 +7,25 @@ const Scene    = require('telegraf/scenes/base'),
       Router   = require('telegraf/router'),
       moment   = require('moment')
 
+const { session } = require('../middlewares')
+
 async function loadSchedule(user, group) {
-    const oneDay = await Schedule.getScheduleDay(group/*user.group_id*/, user.current_day)
+    const oneDay = await Schedule.getScheduleDay(group, user.current_day)
     let schedule = `<b>${user.current_week.start} - ${user.current_week.end}</b>\n\n<b>${(oneDay.titleFull || 'Воскресенье')} - ${user.current_day}</b>\n\n`
     const lessons = oneDay.lessons
     if (lessons.length == 0 && !oneDay.err) {
-        //schedule += `<i>В этот день пар нет, отдыхайте</i>`
         schedule += `<i>${Fun.free()}</i>`
     } else if (oneDay.err) {
         schedule += `<i>${oneDay.err}</i>`
     }
-    for (let i = 0; i < lessons.length; i++) {
-        schedule += `⏰ <i>${lessons[i].start} - ${lessons[i].end}</i>\n<b>📖 Предмет:</b> ${lessons[i].subject} (<i>${lessons[i].type}</i>)\n`
-        //schedule += `<b>📚</b> ${lessons[i].type}\n`
-        if (lessons[i].teacher != false) {
-            schedule += `<b>🤓 Преподаватель:</b> ${lessons[i].teacher}\n`
+    //for (let i = 0; i < lessons.length; i++) {
+    for (let lesson of lessons) {
+        schedule += `⏰ <i>${lesson.start} - ${lesson.end}</i>\n<b>📖 Предмет:</b> ${lesson.subject} (<i>${lesson.type}</i>)\n`
+        if (lesson.teacher != false) {
+            schedule += `<b>🤓 Преподаватель:</b> ${lesson.teacher}\n`
         }
-        if (lessons[i].auditory_name != false) {
-            schedule += `<b>🚪 Аудитория:</b> ${lessons[i].auditory_name}\n`
+        if (lesson.auditory_name != false) {
+            schedule += `<b>🚪 Аудитория:</b> ${lesson.auditory_name}\n`
         }
         schedule += `\n`
     }
@@ -147,46 +148,31 @@ function genInlineKeyboard(group) {
 
 module.exports = new Scene('menu')
 .enter(async (ctx) => {
-    const user = ctx.session.user
-    if (!user.group.length) {
-        //await ctx.reply('Для начала вам необходимо выбрать группу', Keyboard.new(['Выбрать группу', 'Настройки']).draw())
-        ctx.scene.enter('select')
-    } else {
-        let groups = user.group
-        for (let i = 0; i < groups.length; i++) {
-            const schedule = await loadSchedule(user, groups[i])
-            await ctx.replyWithHTML(`🗓 Расписание для группы <b>${groups[i]}</b>`, Keyboard.new(['Настройки', 'Помощь']).draw())
-            const inlineKeyboard = genInlineKeyboard(groups[i])
-            await ctx.replyWithHTML(schedule, inlineKeyboard.extra({parse_mode: 'HTML'}))
+    try {
+        console.log('menu', ctx.session)
+        const user = ctx.session.user
+        if (!user.group.length) {
+            ctx.scene.enter('select')
+        } else {
+            for (let group of user.group) {
+                const schedule = await loadSchedule(user, group)
+                await ctx.replyWithHTML(`🗓 Расписание для группы <b>${group}</b>`, Keyboard.new(['Настройки', 'Помощь']).draw())
+                const inlineKeyboard = genInlineKeyboard(group)
+                await ctx.replyWithHTML(schedule, inlineKeyboard.extra({parse_mode: 'HTML'}))
+            }
         }
+    } catch(err) {
+        console.log(`(menu) User ${ctx.from.id} blocked`)
     }
 })
 .hears('Настройки', ({ scene }) => {
     scene.enter('settings')
 })
 .hears('Помощь', ({ reply }) => {
-    reply('Если бот перестал реагировать на ваши команды, просто повторно введи команду /start, чтобы перезапустить его.\n\nСейчас бот находится в рабочем состоянии, но если вас заинтересует, то в планах добавить настраиваемые уведомления перед парой (либо на определенное время) в стиле "Через 10 минут начинается такая-то пара"\n\nА вообще если у вас есть какие-либо предложения или вопросы, то пишите мне @RealPeha')
+    reply('Если бот перестал реагировать на ваши команды, просто повторно введи команду /start, чтобы перезапустить его.\n\nСейчас бот находится в рабочем состоянии, но если вас заинтересует, то в планах добавить настраиваемые уведомления перед парой (либо на определенное время) в стиле "Через 10 минут начинается такая-то пара"\n\nА вообще если у вас есть какие-либо предложения или вопросы, то пишите сюда @Ballet228')
 })
 .hears('Выбрать группу', ({ scene }) => {
     scene.enter('select')
 })
-.hears(/\/send ([\s\S]*)/i, async (ctx) => {
-    if (ctx.message.from.id == 155054210) {
-        const text = ctx.match[1]
-        const users = await User.all()
-        send(ctx.telegram, users, 0, text)
-    } else {
-        console.log('permission denied')
-    }
-})
+.hears(/\/send ([\s\S]*)/i, (ctx) => require('../utils/broadcast')(ctx))
 .on('callback_query', calendar)
-
-function send(telegram, users, i, text) {
-    setTimeout(() => {
-        if (users[i]) {
-            telegram.sendMessage(users[i].id, text)
-            .then(() => send(telegram, users, i+1, text))
-            .catch(err => {})
-        }
-    }, 100)
-}

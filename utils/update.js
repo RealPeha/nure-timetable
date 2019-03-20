@@ -16,9 +16,7 @@ module.exports = new class {
                 console.log(`Update ${group} good`)
             })
             return await updates.save()
-        }/* else {
-            await this.update(group)
-        }*/
+        }
         return false
     }
     async update(group) {

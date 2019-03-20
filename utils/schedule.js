@@ -2,7 +2,9 @@ const moment = require('moment'),
       Cist   = require('./cist'),
       Group  = require('./groups'),
       Update = require('./update'),
-      Fun    = require('./forfun')
+      fs = require('fs'),
+      Fun    = require('./forfun'),
+      allGroups = require('./allGroup.json')
 
 module.exports.thisWeek = (start) => {
     const day = moment(start, 'DD.MM.YYYY')
@@ -71,30 +73,15 @@ module.exports.getScheduleDay = async (group, day) => {
     }
     return dayLessons
 }
-
-module.exports.allGroups = async () => {
-    const faculties = await Cist.getFaculties()
-        .catch(err => false)
-    const allGroup = {}
-    if (!faculties) {
-        return false
-    }
-    for ({faculty_id} of faculties) {
-        const groups = await Cist.getGroups(faculty_id)
-        for (group of groups) {
-            allGroup[group.group_name] = group.group_id
-        }
-    }
-    return allGroup
+module.exports.allGroups = () => {
+    return allGroups
 }
-
 module.exports.update = async (user) => {
-    let groups = user.group
-    for (let i = 0; i < groups.length; i++) {
+    for (let i = 0; i < user.group.length; i++) {
         const data = await Cist.getSchedules(user.group_id[i])
         const json = JSON.stringify(data).replace(/type/g, 's_type')
         const newdata = JSON.parse(json)
-        await Group.update(groups[i], newdata, user.group_id[i])
-        await Update.update(groups[i])
+        await Group.update(user.group[i], newdata, user.group_id[i])
+        await Update.update(user.group[i])
     }
 }

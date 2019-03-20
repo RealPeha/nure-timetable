@@ -1,7 +1,7 @@
 {
   "name": "timetablebot",
-  "version": "1.1.0",
-  "description": "",
+  "version": "1.5.0",
+  "description": "Timeable bot for NURE",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
@@ -13,6 +13,10 @@
     "mongoose": "^5.4.16",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
-    "telegraf": "^3.27.1"
+    "telegraf": "^3.27.1",
+    "telegraf-ratelimit": "^2.0.0"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1"
   }
 }

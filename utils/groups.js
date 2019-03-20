@@ -9,15 +9,23 @@ module.exports = new class {
     }
     async add(group, groupId) {
         const isGroup = await this.exist(group)
+        let data = true
         if (!isGroup) {
-            const data = await Cist.getSchedules(groupId)
-            const json = JSON.stringify(data).replace(/type/g, 's_type')
-            const newdata = JSON.parse(json)
-            const groups = new Group(newdata)
-            await Update.add(group)
-            return await groups.save()
+            data = await Cist.getSchedules(groupId)
+            .then(async (res) => {
+                const json = JSON.stringify(res).replace(/type/g, 's_type')
+                const newdata = JSON.parse(json)
+                const groups = new Group(newdata)
+                await Update.add(group)
+                await groups.save()
+                return true
+            })
+            .catch(err => {
+                console.log('Cist not responding')
+                return false
+            })
         }
-        return false
+        return data
     }
     async update(group, newdata, groupId = 0) {
         if (!this.exist(group)) {

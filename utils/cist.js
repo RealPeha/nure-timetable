@@ -30,7 +30,7 @@ const getSchedules = async (groupId) => {
             group_id: groupId
         }
     })
-    return /*data ? */data/* : []*/
+    return data
 }
 
 module.exports.getFaculties = getFaculties

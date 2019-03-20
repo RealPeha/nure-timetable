@@ -4,3 +4,4 @@ config.json
 app.yaml
 Procfile
 now.json
+web-stat/
